@@ -2,80 +2,39 @@ pipeline {
     agent any
 
     environment {
-        PHP_VERSION = '8.3'
-        APP_DIR = 'gestionOPS'
-        DB_CONNECTION = 'mysql'
-        DB_HOST = 'db'
-        DB_PORT = '3306'
-        DB_DATABASE = 'gestion_etablissement'
-        DB_USERNAME = 'root'
-        DB_PASSWORD = ''
-        PATH = "/usr/local/bin:$PATH"
+        IMAGE_NAME = 'gestion_etablissement'
+        CONTAINER_NAME = 'gestion_etablissement'
     }
 
     stages {
-        stage('Cloner le code') {
+        stage('Cloner le repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/mbene22A/gestionOPS.git'
+                git 'https://github.com/mbene22A/gestionOPS.git'
             }
         }
 
-    
-
-        stage('Installer PHP et Composer') {
+        stage('Construire l’image Docker') {
             steps {
-                // Vérifie la version de PHP
-                sh 'docker-compose exec app php -v'
-
-                // Installe les dépendances via Composer dans le conteneur Docker
-                sh 'docker-compose exec app composer install --no-interaction --prefer-dist --optimize-autoloader'
+                script {
+                    sh 'docker build -t $IMAGE_NAME .'
+                }
             }
         }
 
-        stage('Configurer l\'environnement') {
+        stage('Arrêter et supprimer l’ancien conteneur') {
             steps {
-                // Copier .env.example vers .env dans le conteneur Docker
-                sh 'docker-compose exec app cp .env.example .env'
-                
-                // Générer la clé d'application et effectuer la mise en cache
-                sh 'docker-compose exec app php artisan key:generate'
-                sh 'docker-compose exec app php artisan config:cache'
+                script {
+                    sh 'docker stop $CONTAINER_NAME || true && docker rm $CONTAINER_NAME || true'
+                }
             }
         }
 
-        stage('Run Migrations') {
+        stage('Démarrer le conteneur') {
             steps {
-                sh 'docker-compose exec app php artisan migrate --seed'
+                script {
+                    sh 'docker-compose up -d'
+                }
             }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh 'docker-compose exec app php artisan test'
-            }
-        }
-
-        stage('Cleanup') {
-            steps {
-                sh 'docker-compose down'
-            }
-        }
-
-        stage('Déployer l\'application') {
-            steps {
-                echo '🚀 Déploiement en cours...'
-                // Utilisation de la commande artisan pour forcer la migration lors du déploiement
-                sh 'docker-compose exec app php artisan migrate --force'
-            }
-        }
-    }
-
-    post {
-        success {
-            echo '🎉 Déploiement réussi !'
-        }
-        failure {
-            echo '⚠ Erreur, vérifiez les logs Jenkins.'
         }
     }
 }
