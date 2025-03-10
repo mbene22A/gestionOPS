@@ -2,8 +2,15 @@ pipeline {
     agent any
 
     environment {
-        PHP_VERSION = '8.2'
+        PHP_VERSION = '8.3'
         APP_DIR = 'gestionOPS'
+        DB_CONNECTION = 'mysql'
+        DB_HOST = 'db'
+        DB_PORT = '3306'
+        DB_DATABASE = 'gestion_etablissement'
+        DB_USERNAME = 'root'
+        DB_PASSWORD = ''
+    
     }
 
     stages {
@@ -12,7 +19,35 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/mbene22A/gestionOPS.git'
             }
         }
+         stage('Build and Start Containers') {
+            steps {
+                sh 'docker-compose up --build -d'
+            }
+        }
 
+        stage('Install Dependencies') {
+            steps {
+                sh 'docker-compose exec app composer install'
+            }
+        }
+
+        stage('Run Migrations') {
+            steps {
+                sh 'docker-compose exec app php artisan migrate --seed'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'docker-compose exec app php artisan test'
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                sh 'docker-compose down'
+            }
+        }
         stage('Installer PHP et Composer') {
             steps {
                 sh 'php -v'
