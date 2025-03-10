@@ -8,12 +8,16 @@ services:
     container_name: laravel_app
     volumes:
       - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini # Ajout pour config PHP
     networks:
       - laravel
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
-      
+      - DB_HOST=db
+      - DB_DATABASE=gestion_etablissement
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=secret
     depends_on:
       - db
 
@@ -33,6 +37,7 @@ services:
   db:
     image: mysql:8.0
     container_name: laravel_db
+    restart: always # Assure que MySQL redémarre en cas d'échec
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: gestion_etablissement
@@ -42,10 +47,11 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - laravel
+    command: --default-authentication-plugin=mysql_native_password
 
 networks:
   laravel:
-   driver: bridge
+    driver: bridge
 
 volumes:
   db_data:

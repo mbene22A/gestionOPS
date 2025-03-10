@@ -20,6 +20,9 @@ use App\Http\Controllers\ProfesseurController;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
+Route::get('/', function () {
+    return view('index'); 
+});
 
 
 Route::get('/voir', [EtablissementController::class,'index']);

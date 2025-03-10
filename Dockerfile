@@ -1,7 +1,7 @@
-# Utilisation de l'image officielle PHP avec les extensions nécessaires
+# Utilisation de l'image PHP officielle avec FPM
 FROM php:8.2-fpm
 
-# Installation des dépendances système
+# Installation des dépendances système et nettoyage après installation
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
@@ -10,25 +10,30 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Installation de Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Configuration du répertoire de travail
+# Définition du répertoire de travail
 WORKDIR /var/www
 
-# Copier les fichiers du projet dans le conteneur
-COPY . .
+# Copier uniquement les fichiers nécessaires pour installer les dépendances
+COPY composer.json composer.lock ./
 
-# Installer les dépendances Laravel
+# Installer les dépendances Laravel sans les dépendances de dev pour optimiser la prod
 RUN composer install --no-dev --optimize-autoloader
 
-# Donner les permissions nécessaires au dossier de cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Copier le reste des fichiers du projet (après installation des dépendances)
+COPY . .
 
-# Exposer le port 9000 pour PHP-FPM
+# Modifier les permissions pour éviter les erreurs d'accès
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# Exposer le port 9000 (PHP-FPM)
 EXPOSE 9000
 
-# Commande de démarrage de PHP-FPM
+# Démarrer PHP-FPM
 CMD ["php-fpm"]
