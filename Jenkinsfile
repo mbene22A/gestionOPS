@@ -20,11 +20,7 @@ pipeline {
             }
         }
 
-        stage('Build and Start Containers') {
-            steps {
-                sh 'docker-compose up --build -d'
-            }
-        }
+    
 
         stage('Installer PHP et Composer') {
             steps {

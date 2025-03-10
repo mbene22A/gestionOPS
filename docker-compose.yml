@@ -1,53 +1,56 @@
 
+
 services:
-    # Service pour l'application PHP Laravel
-    app:
-        build:
-            args:
-                user: laravel
-                uid: 1000
-            context: ./
-            dockerfile: Dockerfile
-        image: gestion-etablissement
-        container_name: gestion-etablissement
-        restart: unless-stopped
-        working_dir: /var/www/
-        volumes:
-            - ./:/var/www  # Montage du code source pour le développement
-        networks:
-            - app-network
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    volumes:
+      - .:/var/www
+    networks:
+      - laravel
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=db
+      - DB_DATABASE=gestion_etablissement
+      - DB_USERNAME=root
+      - DB_PASSWORD=
+    depends_on:
+      - db
 
-    # Service Nginx pour servir l'application
-    nginx:
-        image: nginx:alpine
-        container_name: gestion-etablissement-nginx
-        restart: unless-stopped
-        ports:
-            - "8000:80"  # Exposition du port 8000 sur l'hôte
-        volumes:
-            - ./:/var/www  # Montage du code source
-            - ./docker/nginx:/etc/nginx/conf.d/  # Montage de la configuration Nginx
-        networks:
-            - app-network
+  web:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8000:80"
+    networks:
+      - laravel
+    depends_on:
+      - app
 
-    # Service de base de données MySQL
-    db:
-        image: mysql:8.0
-        container_name: gestion-etablissement
-        restart: unless-stopped
-        environment:
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_ALLOW_EMPTY_PASSWORD: "yes"  # Permet d'utiliser un mot de passe vide pour root
-        volumes:
-            - dbdata:/var/lib/mysql  # Volume pour persister les données MySQL
-        networks:
-            - app-network
+  db:
+    image: mysql:8.0
+    container_name: laravel_db
+    restart: always # Assure que MySQL redémarre en cas d'échec
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gestion_etablissement
+      MYSQL_USER: laravel_user
+      MYSQL_PASSWORD: secret
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - laravel
+    command: --default-authentication-plugin=mysql_native_password
 
-# Définition des réseaux
 networks:
-    app-network:
-        driver: bridge
+  laravel:
+    driver: bridge
 
-# Définition des volumes
 volumes:
-    dbdata:  # Volume pour stocker les données MySQL
+  db_data:
