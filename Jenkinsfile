@@ -10,7 +10,7 @@ pipeline {
         DB_DATABASE = 'gestion_etablissement'
         DB_USERNAME = 'root'
         DB_PASSWORD = ''
-    
+        PATH = "/usr/local/bin:$PATH"
     }
 
     stages {
@@ -19,15 +19,31 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/mbene22A/gestionOPS.git'
             }
         }
-         stage('Build and Start Containers') {
+
+        stage('Build and Start Containers') {
             steps {
                 sh 'docker-compose up --build -d'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Installer PHP et Composer') {
             steps {
-                sh 'docker-compose exec app composer install'
+                // Vérifie la version de PHP
+                sh 'docker-compose exec app php -v'
+
+                // Installe les dépendances via Composer dans le conteneur Docker
+                sh 'docker-compose exec app composer install --no-interaction --prefer-dist --optimize-autoloader'
+            }
+        }
+
+        stage('Configurer l\'environnement') {
+            steps {
+                // Copier .env.example vers .env dans le conteneur Docker
+                sh 'docker-compose exec app cp .env.example .env'
+                
+                // Générer la clé d'application et effectuer la mise en cache
+                sh 'docker-compose exec app php artisan key:generate'
+                sh 'docker-compose exec app php artisan config:cache'
             }
         }
 
@@ -48,31 +64,12 @@ pipeline {
                 sh 'docker-compose down'
             }
         }
-        stage('Installer PHP et Composer') {
-            steps {
-                sh 'php -v'
-                sh 'composer install --no-interaction --prefer-dist --optimize-autoloader'
-            }
-        }
-
-        stage('Configurer l\'environnement') {
-            steps {
-                sh 'cp .env.example .env'
-                sh 'php artisan key:generate'
-                sh 'php artisan config:cache'
-            }
-        }
-
-        stage('Exécuter les tests') {
-            steps {
-                sh 'php artisan test'
-            }
-        }
 
         stage('Déployer l\'application') {
             steps {
                 echo '🚀 Déploiement en cours...'
-                sh 'php artisan migrate --force'
+                // Utilisation de la commande artisan pour forcer la migration lors du déploiement
+                sh 'docker-compose exec app php artisan migrate --force'
             }
         }
     }
