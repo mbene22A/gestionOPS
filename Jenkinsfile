@@ -9,6 +9,15 @@ pipeline {
     stages {
       
 
+             stage('Checkout Code') {
+    steps {
+        sh '''
+            git fetch --all
+            git reset --hard origin/main
+        '''
+    }
+}
+
           stage('Cloner le repo') {
             steps {
                 git 'https://github.com/mbene22A/gestionOPS.git'
