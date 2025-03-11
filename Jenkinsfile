@@ -7,15 +7,16 @@ pipeline {
     }
 
     stages {
-        stage('Cloner le repo') {
-            steps {
-                git 'https://github.com/mbene22A/gestionOPS.git'
-            }
-        }
-    
+      
         stage('Install Dependencies') {
             steps {
                 sh 'composer install'
+            }
+        }
+
+          stage('Cloner le repo') {
+            steps {
+                git 'https://github.com/mbene22A/gestionOPS.git'
             }
         }
         stage('Code Quality') {
