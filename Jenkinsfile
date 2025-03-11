@@ -8,15 +8,20 @@ pipeline {
 
     stages {
       
-        stage('Install Dependencies') {
-            steps {
-                sh 'composer install'
-            }
-        }
 
           stage('Cloner le repo') {
             steps {
                 git 'https://github.com/mbene22A/gestionOPS.git'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+            curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+            export PATH=$PATH:/usr/local/bin
+            composer install --no-dev --optimize-autoloader
+        '''
             }
         }
         stage('Code Quality') {
