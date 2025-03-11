@@ -12,7 +12,23 @@ pipeline {
                 git 'https://github.com/mbene22A/gestionOPS.git'
             }
         }
-
+    
+        stage('Install Dependencies') {
+            steps {
+                sh 'composer install'
+            }
+        }
+        stage('Code Quality') {
+            steps {
+                sh './vendor/bin/phpstan analyse'
+                sh './vendor/bin/php-cs-fixer fix --dry-run'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                sh 'php artisan test'
+            }
+        }
         stage('Construire l’image Docker') {
             steps {
                 script {
